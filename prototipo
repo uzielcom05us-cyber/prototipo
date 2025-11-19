@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EstudAi - Protótipo Funcional</title>
+
+    <!-- Ícones e Fontes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- VARIÁVEIS GLOBAIS --- */
+        :root {
+            --pink-light: #C690D2;
+            --pink-base: #9C47A1;
+            --pink-dark: #522966;
+            --blue-light: #76B6D2;
+            --blue-base: #3688BF;
+            --blue-dark: #1574A4;
+            --bg-app: #000F19;
+            --text-primary: #101010;
+            --text-secondary: #57534E;
+            --white: #FFFFFF;
+            --gradient-main: linear-gradient(180deg, #1574A4 0%, #522966 100%);
+            --forest-bg: #2E5D57;
+            --tree-green: #388E3C;
+            --focus-btn: #66BB6A;
+            --stop-btn: #E57373;
+            --iphone-w: 375px; /* Largura padrão iPhone */
+            --iphone-h: 812px; /* Altura padrão iPhone */
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Correção 1: Permitir rolagem na página se a tela for pequena */
+        body {
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinha ao topo para permitir scroll */
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 0; /* Espaço para scroll */
+            font-family: 'Nunito', sans-serif;
+            overflow-y: auto; /* Habilita scroll do navegador */
+        }
+
+        /* --- MOLDURA DO CELULAR --- */
+        .phone-frame {
+            width: calc(var(--iphone-w) + 24px);
+            height: calc(var(--iphone-h) + 24px);
+            background: #202020;
+            border-radius: 50px;
+            box-shadow: 0 0 0 4px #333, 0 20px 50px rgba(0,0,0,0.6);
+            position: relative;
+            padding: 12px;
+            margin: auto;
+            flex-shrink: 0;
+        }
+
+        .dynamic-island {
+            position: absolute;
+            top: 20px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 30px; background: #000;
+            border-radius: 20px; z-index: 10000;
+            pointer-events: none;
+        }
+
+        /* --- TELA PRINCIPAL --- */
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-main);
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Correção 2: Container de conteúdo com rolagem garantida */
+        .content-container {
+            flex: 1; /* Ocupa todo espaço disponível */
+            overflow-y: auto; /* Habilita rolagem interna */
+            padding: 60px 20px 100px 20px; /* Espaço para cabeçalho e rodapé */
+            width: 100%;
+            position: absolute; /* Garante posicionamento correto */
+            top: 0; bottom: 0; left: 0; right: 0;
+            display: flex;
+            flex-direction: column;
+            /* Esconde scrollbar mas permite rolar */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .content-container::-webkit-scrollbar { display: none; }
+
+        .hidden {
+            display: none !important;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* --- STATUS BAR --- */
+        .status-bar {
+            height: 44px; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 25px; font-size: 14px; font-weight: 600; color: white;
+            position: absolute; top: 0; left: 0; z-index: 5000;
+            pointer-events: none; /* Garante que cliques passem */
+        }
+
+        /* --- COMPONENTES DE UI --- */
+        h1 { font-size: 26px; font-weight: 900; margin: 0 0 8px 0; color: white; }
+        h2 { font-size: 18px; font-weight: 800; margin: 0 0 12px 0; color: white; }
+        p { font-size: 14px; margin: 0; opacity: 0.9; color: white; line-height: 1.4; }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            color: var(--text-primary);
+        }
+        .card h2, .card p, .card h3 { color: var(--text-primary); }
+
+        .btn-primary {
+            background: var(--blue-dark); color: white;
+            border: none; width: 100%; padding: 15px;
+            border-radius: 25px; font-weight: 800; font-size: 16px;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+
+        .input-group {
+            background: #F3F4F6; border-radius: 15px;
+            padding: 14px; display: flex; align-items: center; gap: 10px;
+            margin-bottom: 12px; border: 1px solid transparent;
+        }
+        .input-group:focus-within { border-color: var(--blue-base); }
+        .input-group i { color: var(--text-secondary); }
+        .input-group input {
+            border: none; background: transparent; width: 100%;
+            font-family: 'Nunito'; font-weight: 600; outline: none;
+            color: var(--text-primary); font-size: 14px;
+        }
+
+        /* --- NAVEGAÇÃO INFERIOR --- */
+        .bottom-nav {
+            position: absolute; bottom: 20px; left: 20px; right: 20px;
+            height: 65px; background: white; border-radius: 35px;
+            display: flex; justify-content: space-around; align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 4000;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 4px; font-size: 10px; font-weight: 700; color: #ccc;
+            cursor: pointer; transition: 0.2s; background: none; border: none;
+            padding: 5px;
+        }
+        .nav-item i { font-size: 20px; }
+        .nav-item.active { color: var(--pink-base); transform: translateY(-2px); }
+
+        /* --- MENU LATERAL (DRAWER) --- */
+        .drawer-backdrop {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+            z-index: 6000; opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+        .drawer {
+            position: absolute; top: 0; left: 0; bottom: 0; width: 80%;
+            background: white; z-index: 6001; transform: translateX(-100%);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 40px 0 0 40px;
+            display: flex; flex-direction: column;
+        }
+        .drawer.open { transform: translateX(0); }
+
+        .drawer-header {
+            padding: 50px 20px 20px; background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+        .drawer-menu { padding: 10px 0; overflow-y: auto; flex: 1; }
+        .menu-item {
+            padding: 12px 20px; display: flex; align-items: center; gap: 15px;
+            font-weight: 700; color: #333; cursor: pointer; font-size: 14px;
+        }
+        .menu-item:active { background: #f0f0f0; }
+        .menu-item i { width: 25px; text-align: center; color: #666; font-size: 18px; }
+
+        /* --- ESTILOS ESPECÍFICOS --- */
+
+        /* Login */
+        #screen-login {
+            background: white; z-index: 5000;
+            justify-content: center; /* Centraliza verticalmente */
+        }
+        .mascot-wrapper { width: 120px; height: 120px; margin: 0 auto 20px; }
+        .forgot-pass {
+            width: 100%; text-align: right; margin-bottom: 20px;
+            font-size: 13px; font-weight: 700; color: var(--pink-base); cursor: pointer;
+        }
+
+        /* Home */
+        .list-row {
+            display: flex; align-items: center; gap: 15px;
+            padding: 12px 0; border-bottom: 1px solid #eee; cursor: pointer;
+        }
+        .list-row:last-child { border-bottom: none; }
+        .icon-sq {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: white;
+        }
+        .bg-nat { background: linear-gradient(135deg, #10B981, #059669); }
+        .bg-mat { background: linear-gradient(135deg, #3B82F6, #2563EB); }
+        .bg-hum { background: linear-gradient(135deg, #F59E0B, #D97706); }
+        .bg-lin { background: linear-gradient(135deg, #EC4899, #DB2777); }
+
+        /* Forest Mode */
+        #screen-focus { background: var(--forest-bg); }
+        .forest-mode {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; height: 100%; color: white;
+        }
+        .tree-circle {
+            width: 220px; height: 220px; border-radius: 50%;
+            background: rgba(255,255,255,0.1); border: 3px solid rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px; transition: 0.3s;
+        }
+        .focus-pill {
+            background: rgba(255,255,255,0.2); padding: 8px 16px;
+            border-radius: 20px; font-size: 14px; font-weight: 700; cursor: pointer; margin: 0 5px;
+        }
+        .focus-pill.active { background: white; color: var(--forest-bg); }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .grid-item {
+            background: white; border-radius: 16px; padding: 15px;
+            text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer; transition: 0.1s;
+        }
+        .grid-item:active { transform: scale(0.96); }
+        .grid-item i { font-size: 24px; color: var(--blue-base); margin-bottom: 8px; display: block; }
+        .grid-item span { font-weight: 700; font-size: 13px; color: #333; }
+
+        /* Modal Customizado */
+        .modal-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+            z-index: 9000; display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; }
+        .modal-box {
+            background: white; width: 85%; padding: 25px; border-radius: 20px;
+            text-align: center; transform: scale(0.9); transition: transform 0.2s;
+        }
+        .modal-overlay.active .modal-box { transform: scale(1); }
+    </style>
+</head>
+<body>
+
+<div class="phone-frame">
+    <div class="dynamic-island"></div>
+
+    <div class="screen">
+        <div class="status-bar">
+            <span>9:41</span>
+            <div style="display: flex; gap: 5px;">
+                <i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-full"></i>
+            </div>
+        </div>
+
+        <!-- MODAL DE ALERTA -->
+        <div class="modal-overlay" id="alert-modal">
+            <div class="modal-box">
+                <i class="fa-solid fa-circle-check" style="font-size: 40px; color: var(--pink-base); margin-bottom: 15px;" id="modal-icon"></i>
+                <h3 style="margin: 0 0 10px 0; color: #333;" id="modal-title">Título</h3>
+                <p style="color: #666; margin-bottom: 20px;" id="modal-msg">Mensagem</p>
+                <button class="btn-primary" onclick="closeModal()" style="padding: 12px;">OK</button>
+            </div>
+        </div>
+
+        <!-- 1. LOGIN -->
+        <div id="screen-login" class="content-container">
+            <div class="mascot-wrapper">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#C690D2"/><stop offset="1" stop-color="#9C47A1"/></linearGradient></defs>
+                    <circle cx="100" cy="110" r="70" fill="url(#g)"/><circle cx="100" cy="70" r="55" fill="url(#g)"/>
+                    <path d="M60 30 Q40 10 40 50 L60 70" fill="url(#g)"/><path d="M140 30 Q160 10 160 50 L140 70" fill="url(#g)"/>
+                    <circle cx="100" cy="115" r="35" fill="white"/>
+                    <circle cx="80" cy="65" r="8" fill="#3688BF"/><circle cx="120" cy="65" r="8" fill="#3688BF"/>
+                    <ellipse cx="100" cy="85" rx="10" ry="7" fill="#1574A4"/>
+                    <path d="M90 95 Q100 105 110 95" stroke="#1574A4" stroke-width="3" fill="none"/>
+                </svg>
+            </div>
+            <h1 style="color: var(--pink-base); text-align: center;">EstudAí</h1>
+            <p style="color: var(--text-secondary); text-align: center; margin-bottom: 30px; font-weight: 600;">O seu futuro começa agora!</p>
+
+            <div class="input-group"><i class="fa-regular fa-envelope"></i><input type="email" placeholder="Email"></div>
+            <div class="input-group"><i class="fa-solid fa-lock"></i><input type="password" placeholder="Senha"></div>
+
+            <div class="forgot-pass" onclick="showAlert('Recuperação', 'Link enviado para seu e-mail!', 'fa-envelope')">Esqueci a senha?</div>
+
+            <button class="btn-primary" onclick="navigate('home', true)">Entrar</button>
+
+            <div style="text-align: center; margin-top: 15px; color: #999; font-size: 12px; margin-bottom: 5px;">Não tem uma conta?</div>
+            <button style="background: white; border: 2px solid var(--pink-base); color: var(--pink-base); width: 100%; padding: 14px; border-radius: 30px; font-weight: 800; cursor: pointer;" onclick="showAlert('Cadastro', 'Bem-vindo ao EstudAi!', 'fa-user-plus')">Criar Conta</button>
+        </div>
+
+        <!-- DRAWER -->
+        <div class="drawer-backdrop" id="drawer-back" onclick="toggleDrawer()"></div>
+        <div class="drawer" id="drawer">
+            <div class="drawer-header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 50px; height: 50px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; border: 2px solid var(--pink-base); font-size: 24px; color: var(--pink-base);"><i class="fa-regular fa-user"></i></div>
+                    <div><h3 style="margin: 0; color: #333; font-size: 16px;">João Victor</h3><span style="font-size: 12px; color: #666;">Plano Gratuito</span></div>
+                </div>
+                <div style="margin-top: 15px; background: linear-gradient(90deg, #FDF2F8, #FFF); padding: 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--pink-light);">
+                    <i class="fa-solid fa-crown" style="color: #F59E0B;"></i>
+                    <div><div style="font-weight: 800; color: var(--pink-base); font-size: 13px;">Seja Plus</div><div style="font-size: 10px; color: #666;">Desbloqueie tudo!</div></div>
+                </div>
+            </div>
+            <div class="drawer-menu">
+                <div class="menu-item" onclick="navigate('focus'); toggleDrawer()"><i class="fa-solid fa-tree"></i> Floresta</div>
+                <div class="menu-item" onclick="navigate('regional'); toggleDrawer()"><i class="fa-solid fa-map-location-dot"></i> Análise Regional</div>
+                <div class="menu-item" onclick="navigate('calendar'); toggleDrawer()"><i class="fa-solid fa-calendar-check"></i> Calendário</div>
+                <div class="menu-item"><i class="fa-solid fa-trophy"></i> Conquistas</div>
+                <div class="menu-item"><i class="fa-solid fa-gear"></i> Configurações</div>
+                <div class="menu-item" style="color: #E57373;" onclick="navigate('login', false); toggleDrawer()"><i class="fa-solid fa-right-from-bracket" style="color: #E57373;"></i> Sair</div>
+            </div>
+        </div>
+
+        <!-- 2. HOME -->
+        <div id="screen-home" class="content-container hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <i class="fa-solid fa-bars" style="color: white; font-size: 24px; cursor: pointer;" onclick="toggleDrawer()"></i>
+                <div style="background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 15px; font-weight: 700; color: white; font-size: 12px;"><i class="fa-solid fa-fire" style="color: #FF9800;"></i> 12</div>
+            </div>
+
+            <h1>Olá, Uziel!</h1>
+            <p style="margin-bottom: 20px;">Vamos estudar o quê hoje?</p>
+
+            <div class="card" style="background: linear-gradient(135deg, #C690D2, #9C47A1); color: white; position: relative; overflow: hidden;">
+                <i class="fa-solid fa-atom" style="position: absolute; right: -10px; bottom: -20px; font-size: 100px; opacity: 0.2;"></i>
+                <h2>Foco: Natureza</h2>
+                <p>Sua área de maior dificuldade.</p>
+                <div style="margin-top: 15px; background: rgba(255,255,255,0.3); height: 6px; border-radius: 3px;">
+                    <div style="width: 45%; background: white; height: 100%; border-radius: 3px;"></div>
+                </div>
+                <button style="margin-top: 15px; background: white; color: var(--pink-base); border: none; padding: 10px 20px; border-radius: 20px; font-weight: 800; cursor: pointer;">Continuar</button>
+            </div>
+
+            <h2 style="font-size: 18px; margin-bottom: 10px;">Matérias</h2>
+            <div class="card" style="padding: 10px 15px;">
+                <div class="list-row"><div class="icon-sq bg-nat"><i class="fa-solid fa-leaf"></i></div><div style="flex: 1; margin-left: 10px;"><b>Biologia</b><br><span style="font-size: 12px; color: #888;">Genética</span></div><i class="fa-solid fa-chevron-right" style="color: #ddd;"></i></div>
+                <div class="list-row"><div class="icon-sq bg-nat"><i class="fa-solid fa-flask"></i></div><div style="flex: 1; margin-left: 10px;"><b>Química</b><br><span style="font-size: 12px; color: #888;">Orgânica</span></div><i class="fa-solid fa-chevron-right" style="color: #ddd;"></i></div>
+                <div class="list-row"><div class="icon-sq bg-mat"><i class="fa-solid fa-calculator"></i></div><div style="flex: 1; margin-left: 10px;"><b>Matemática</b><br><span style="font-size: 12px; color: #888;">Funções</span></div><i class="fa-solid fa-chevron-right" style="color: #ddd;"></i></div>
+            </div>
+        </div>
+
+        <!-- 3. FOCO -->
+        <div id="screen-focus" class="content-container hidden">
+            <div class="forest-mode">
+                <div style="width: 100%; text-align: left; margin-bottom: 20px;"><i class="fa-solid fa-arrow-left" style="font-size: 24px; cursor: pointer;" onclick="navigate('home')"></i></div>
+
+                <div style="background: rgba(0,0,0,0.2); padding: 8px 20px; border-radius: 20px; margin-bottom: 30px; color: #FFD700; font-weight: 800;">
+                    <i class="fa-solid fa-coins"></i> 450
+                </div>
+
+                <div class="tree-circle" id="tree-circle"><i class="fa-solid fa-tree" id="tree-icon" style="font-size: 100px; color: var(--tree-green);"></i></div>
+                <div id="timer-display" style="font-size: 60px; font-weight: 900; margin: 20px 0;">25:00</div>
+
+                <div style="display: flex; justify-content: center; margin-bottom: 30px;">
+                    <div class="focus-pill active" onclick="setTimer(25, this)">25 min</div>
+                    <div class="focus-pill" onclick="setTimer(45, this)">45 min</div>
+                    <div class="focus-pill" onclick="setTimer(60, this)">60 min</div>
+                </div>
+
+                <button id="btn-plant" class="btn-primary" style="background: var(--focus-btn); width: 200px;" onclick="startFocus()">Plantar</button>
+                <button id="btn-stop" class="btn-primary" style="background: var(--stop-btn); width: 200px; display: none;" onclick="stopFocus()">Desistir</button>
+            </div>
+        </div>
+
+        <!-- 4. ENEM -->
+        <div id="screen-enem" class="content-container hidden">
+            <h1>Repertório</h1>
+            <div class="card" style="background: linear-gradient(135deg, #76B6D2, #3688BF); color: white;">
+                <h2 style="color: white;">Cronograma</h2>
+                <p style="color: white;">Faltam <b>142 dias</b> para o ENEM.</p>
+            </div>
+            <div class="grid-2">
+                <div class="grid-item"><i class="fa-solid fa-newspaper"></i><span>Atualidades</span></div>
+                <div class="grid-item"><i class="fa-solid fa-pen-nib"></i><span>Redação</span></div>
+                <div class="grid-item"><i class="fa-solid fa-book-open"></i><span>Provas</span></div>
+                <div class="grid-item"><i class="fa-solid fa-chart-pie"></i><span>Raio-X</span></div>
+                <div class="grid-item"><i class="fa-solid fa-video"></i><span>Aulas</span></div>
+                <div class="grid-item"><i class="fa-solid fa-question-circle"></i><span>Simulados</span></div>
+            </div>
+        </div>
+
+        <!-- 5. REGIONAL -->
+        <div id="screen-regional" class="content-container hidden">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                <i class="fa-solid fa-arrow-left" style="color: white; font-size: 24px; cursor: pointer;" onclick="navigate('home')"></i>
+                <h1 style="margin: 0;">Análise Regional</h1>
+            </div>
+
+            <select style="width: 100%; padding: 15px; border-radius: 15px; border: none; font-family: 'Nunito'; font-weight: 700; margin-bottom: 20px;" id="stateSelect" onchange="updateRegional()">
+                <option value="ES">Espírito Santo (ES)</option>
+                <option value="SP">São Paulo (SP)</option>
+                <option value="RJ">Rio de Janeiro (RJ)</option>
+            </select>
+
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                    <div class="icon-sq bg-nat" id="regIcon"><i class="fa-solid fa-leaf"></i></div>
+                    <div><h3 style="margin: 0; color: #333; font-size: 18px;" id="regTitle">Ciências da Natureza</h3><span style="color: #E57373; font-size: 12px; font-weight: 700;">Maior dificuldade</span></div>
+                </div>
+                <p style="color: #555;" id="regDesc">No ES, o tema "Eletrodinâmica" é o principal vilão.</p>
+            </div>
+        </div>
+
+        <!-- 6. CALENDARIO -->
+        <div id="screen-calendar" class="content-container hidden">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                <i class="fa-solid fa-arrow-left" style="color: white; font-size: 24px; cursor: pointer;" onclick="navigate('home')"></i>
+                <h1 style="margin: 0;">Calendário</h1>
+            </div>
+            <div class="card" style="border-left: 5px solid #2c3e50; display: flex; justify-content: space-between; align-items: center;">
+                <div><h3 style="margin:0; color:#333;">FUVEST</h3><span style="color:#888; font-size:12px;">1ª Fase</span></div>
+                <div style="background:#F3F4F6; padding:10px; border-radius:10px; text-align:center; color:#333; font-weight:800;"><span style="display:block; font-size:10px;">NOV</span>17</div>
+            </div>
+        </div>
+
+        <!-- 7. PERFIL -->
+        <div id="screen-profile" class="content-container hidden">
+            <div style="text-align: center; margin-bottom: 30px; margin-top: 10px;">
+                <div style="width: 80px; height: 80px; background: white; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--pink-light); font-size: 30px; color: var(--pink-base);"><i class="fa-regular fa-user"></i></div>
+                <h2>Uziel</h2><p style="opacity: 0.8;">Estudante Focado</p>
+            </div>
+            <div class="card">
+                <h3 style="margin-top: 0; color: #333;">Minha Floresta</h3>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
+                    <i class="fa-solid fa-tree" style="color: var(--tree-green); font-size: 24px;"></i>
+                    <i class="fa-solid fa-tree" style="color: var(--tree-green); font-size: 24px;"></i>
+                    <i class="fa-solid fa-tree" style="color: var(--tree-green); font-size: 24px;"></i>
+                    <i class="fa-solid fa-tree" style="color: #aaa; font-size: 24px;"></i>
+                    <i class="fa-solid fa-tree" style="color: var(--tree-green); font-size: 24px;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- NAV BAR -->
+        <div class="bottom-nav" id="navbar" style="display: none;">
+            <button class="nav-item active" id="btn-home" onclick="navigate('home')"><i class="fa-solid fa-house"></i>Início</button>
+            <button class="nav-item" id="btn-focus" onclick="navigate('focus')"><i class="fa-solid fa-tree"></i>Foco</button>
+            <button class="nav-item" id="btn-enem" onclick="navigate('enem')"><i class="fa-solid fa-book"></i>ENEM</button>
+            <button class="nav-item" id="btn-profile" onclick="navigate('profile')"><i class="fa-solid fa-user"></i>Perfil</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // SISTEMA DE NAVEGAÇÃO
+    function navigate(screenId, showNav = true) {
+        document.querySelectorAll('.content-container').forEach(el => el.classList.add('hidden'));
+        document.getElementById('screen-' + screenId).classList.remove('hidden');
+
+        const navbar = document.getElementById('navbar');
+        if(showNav) {
+            navbar.style.display = 'flex';
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            if(['home','focus','enem','profile'].includes(screenId)) document.getElementById('btn-' + screenId).classList.add('active');
+        } else {
+            navbar.style.display = 'none';
+        }
+    }
+
+    function toggleDrawer() {
+        const d = document.getElementById('drawer');
+        const b = document.getElementById('drawer-back');
+        d.classList.toggle('open'); b.classList.toggle('open');
+    }
+
+    // MODAL
+    function showAlert(title, msg, icon='fa-check-circle') {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-msg').innerText = msg;
+        document.getElementById('modal-icon').className = `fa-solid ${icon}`;
+        const m = document.getElementById('alert-modal');
+        m.style.display = 'flex';
+        setTimeout(() => m.classList.add('active'), 10);
+    }
+    function closeModal() {
+        const m = document.getElementById('alert-modal');
+        m.classList.remove('active');
+        setTimeout(() => m.style.display = 'none', 200);
+    }
+
+    // FOCO
+    let timer, timeLeft = 25 * 60;
+    function setTimer(min, el) {
+        if(document.getElementById('btn-stop').style.display === 'block') return;
+        timeLeft = min * 60; updateDisplay();
+        document.querySelectorAll('.focus-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+    }
+    function updateDisplay() {
+        let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        let s = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+    function startFocus() {
+        document.getElementById('btn-plant').style.display = 'none';
+        document.getElementById('btn-stop').style.display = 'block';
+        document.getElementById('tree-circle').style.borderColor = '#FFD700';
+        timer = setInterval(() => {
+            if(timeLeft > 0) { timeLeft--; updateDisplay(); }
+            else { clearInterval(timer); showAlert("Sucesso!", "Árvore plantada!"); resetFocus(); }
+        }, 1000);
+    }
+    function stopFocus() {
+        if(confirm("Desistir?")) { clearInterval(timer); resetFocus(); }
+    }
+    function resetFocus() {
+        timeLeft = 25 * 60; updateDisplay();
+        document.getElementById('btn-plant').style.display = 'block';
+        document.getElementById('btn-stop').style.display = 'none';
+        document.getElementById('tree-circle').style.borderColor = 'rgba(255,255,255,0.2)';
+    }
+
+    // REGIONAL
+    function updateRegional() {
+        const v = document.getElementById('stateSelect').value;
+        const t = document.getElementById('regTitle');
+        const d = document.getElementById('regDesc');
+        const i = document.getElementById('regIcon');
+        if(v==='ES') { t.innerText="Natureza"; d.innerText="Dificuldade em Eletrodinâmica."; i.className="icon-sq bg-nat"; i.innerHTML='<i class="fa-solid fa-leaf"></i>'; }
+        else if(v==='SP') { t.innerText="Redação"; d.innerText="Dificuldade na Competência 1."; i.className="icon-sq bg-lin"; i.innerHTML='<i class="fa-solid fa-pen-nib"></i>'; }
+        else { t.innerText="Matemática"; d.innerText="Dificuldade em Geometria."; i.className="icon-sq bg-mat"; i.innerHTML='<i class="fa-solid fa-calculator"></i>'; }
+    }
+</script>
+
+</body>
+</html>
